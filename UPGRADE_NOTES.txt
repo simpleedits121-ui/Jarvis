@@ -1,0 +1,9 @@
+JARVIS project cleanup
+
+- Removed nested starter-project copy and nested ZIP archives from the main project archive.
+- Kept the root Android app and its existing Kotlin source/assets.
+- Replaced the custom SDK path lookup in GitHub Actions with the Android SDK setup action.
+- Added Gradle setup action, build timeout, and a clean assembleDebug build step.
+- Updated README to accurately describe demo limitations and build steps.
+
+Not claimed: a successful APK build. The workflow must run in GitHub Actions to verify the build remotely.

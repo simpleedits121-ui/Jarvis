@@ -1,0 +1,460 @@
+
+package com.example.jarvis
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.jarvis.core.JarvisCore
+import com.example.jarvis.core.Message
+
+private val Background = Color(0xFF07111D)
+private val Panel = Color(0xFF101F30)
+private val Cyan = Color(0xFF63D8FF)
+private val Muted = Color(0xFF8CA9BF)
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        setContent {
+            MaterialTheme(
+                colorScheme = darkColorScheme(
+                    primary = Cyan,
+                    background = Background,
+                    surface = Panel
+                )
+            ) {
+                JarvisDesktop()
+            }
+        }
+    }
+}
+
+@Composable
+private fun JarvisDesktop() {
+    var selected by remember { mutableStateOf("Home") }
+    var menuOpen by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Background)
+            .padding(8.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .width(58.dp)
+                .fillMaxHeight()
+                .background(Panel, RoundedCornerShape(16.dp))
+                .padding(vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text("J", color = Cyan, fontSize = 28.sp,
+                fontWeight = FontWeight.Bold)
+
+            HorizontalDivider(color = Color(0xFF263B4D))
+
+            listOf("Home", "Chat", "Models", "Tools", "Settings")
+                .forEach { page ->
+                    NavigationTile(
+                        label = page,
+                        selected = selected == page,
+                        onClick = { selected = page }
+                    )
+                }
+
+            Spacer(Modifier.weight(1f))
+            Text("v0.3", color = Muted, fontSize = 10.sp)
+        }
+
+        Spacer(Modifier.width(8.dp))
+
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Panel, RoundedCornerShape(14.dp))
+                    .padding(horizontal = 10.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "JARVIS WORKSPACE",
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "LOCAL DESKTOP COMPANION",
+                        color = Muted,
+                        fontSize = 8.sp
+                    )
+                }
+
+                Box {
+                    TextButton(onClick = { menuOpen = true }) {
+                        Text("•••", color = Cyan, fontSize = 18.sp)
+                    }
+
+                    DropdownMenu(
+                        expanded = menuOpen,
+                        onDismissRequest = { menuOpen = false }
+                    ) {
+                        listOf("Home", "Chat", "Models", "Tools", "Settings")
+                            .forEach { page ->
+                                DropdownMenuItem(
+                                    text = { Text(page) },
+                                    onClick = {
+                                        selected = page
+                                        menuOpen = false
+                                    }
+                                )
+                            }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(10.dp))
+
+            when (selected) {
+                "Chat" -> ChatPanel()
+                "Models" -> InfoPanel(
+                    "MODEL MANAGER",
+                    "Offline GGUF model installation and switching are planned."
+                )
+                "Tools" -> InfoPanel(
+                    "DEVICE TOOLS",
+                    "Device actions and app controls are not connected yet."
+                )
+                "Settings" -> InfoPanel(
+                    "SETTINGS",
+                    "Character, voice and appearance controls will be added here."
+                )
+                else -> HomePanel(
+                    onOpenChat = { selected = "Chat" }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun NavigationTile(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val symbol = when (label) {
+        "Home" -> "⌂"
+        "Chat" -> "◉"
+        "Models" -> "▤"
+        "Tools" -> "⚙"
+        else -> "☰"
+    }
+
+    Surface(
+        onClick = onClick,
+        color = if (selected) Color(0xFF16445B) else Color.Transparent,
+        shape = RoundedCornerShape(10.dp),
+        modifier = Modifier.size(50.dp)
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(symbol, color = Cyan, fontSize = 20.sp)
+            Text(
+                label,
+                color = if (selected) Color.White else Muted,
+                fontSize = 7.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomePanel(onOpenChat: () -> Unit) {
+    var mood by remember { mutableStateOf("Idle") }
+
+    val transition = rememberInfiniteTransition(label = "character")
+    val breathing by transition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.012f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1800),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "breathing"
+    )
+
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            color = Color(0xFF0B1A2A),
+            shape = RoundedCornerShape(20.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    "JARVIS • $mood",
+                    color = Cyan,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                Image(
+                    painter = painterResource(
+                        id = R.drawable.character_sheet
+                    ),
+                    contentDescription = "JARVIS anime scientist character sheet",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .scale(breathing),
+                    contentScale = ContentScale.Fit
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                Text(
+                    "YOUR ANIME COMPANION",
+                    color = Color.White,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    "Local character engine",
+                    color = Muted,
+                    fontSize = 10.sp
+                )
+
+                Spacer(Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    listOf("Idle", "Listen", "Think", "Sleep").forEach { action ->
+                        Button(
+                            onClick = {
+                                mood = when (action) {
+                                    "Listen" -> "Listening"
+                                    "Think" -> "Thinking"
+                                    "Sleep" -> "Sleeping"
+                                    else -> "Idle"
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(
+                                horizontal = 2.dp,
+                                vertical = 8.dp
+                            )
+                        ) {
+                            Text(action, fontSize = 10.sp)
+                        }
+                    }
+                }
+            }
+        }
+
+        Surface(
+            color = Panel,
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(12.dp)) {
+                Text(
+                    "QUICK ACCESS",
+                    color = Muted,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                Button(
+                    onClick = onOpenChat,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Open JARVIS Chat")
+                }
+
+                Text(
+                    "Chat currently uses the demo response engine.",
+                    color = Muted,
+                    fontSize = 10.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun InfoPanel(title: String, description: String) {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = Panel,
+        shape = RoundedCornerShape(20.dp)
+    ) {
+        Column(
+            Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                title,
+                color = Cyan,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(description, color = Color.White, fontSize = 13.sp)
+        }
+    }
+}
+
+@Composable
+private fun ChatPanel() {
+    val core = remember { JarvisCore() }
+    val messages = remember {
+        mutableStateListOf(
+            Message(
+                fromUser = false,
+                text = "Hello. I'm JARVIS. My current response engine is a demo."
+            )
+        )
+    }
+    var draft by remember { mutableStateOf("") }
+
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Text(
+            "CONVERSATION",
+            color = Cyan,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        LazyColumn(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            items(messages) { message ->
+                Surface(
+                    color = if (message.fromUser)
+                        Color(0xFF164E68) else Panel,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(Modifier.padding(12.dp)) {
+                        Text(
+                            if (message.fromUser) "YOU" else "JARVIS",
+                            color = Cyan,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            message.text,
+                            color = Color.White,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Panel, RoundedCornerShape(22.dp))
+                .padding(start = 14.dp, end = 5.dp, top = 5.dp, bottom = 5.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            BasicTextField(
+                value = draft,
+                onValueChange = { draft = it },
+                modifier = Modifier.weight(1f).padding(vertical = 10.dp),
+                textStyle = androidx.compose.ui.text.TextStyle(
+                    color = Color.White,
+                    fontSize = 14.sp
+                ),
+                decorationBox = { inner ->
+                    Box {
+                        if (draft.isEmpty()) {
+                            Text(
+                                "Talk to JARVIS...",
+                                color = Muted,
+                                fontSize = 13.sp
+                            )
+                        }
+                        inner()
+                    }
+                }
+            )
+
+            IconButton(onClick = {
+                val prompt = draft.trim()
+                if (prompt.isNotEmpty()) {
+                    messages.add(Message(fromUser = true, text = prompt))
+                    messages.add(
+                        Message(
+                            fromUser = false,
+                            text = core.respondToDemoMessage(prompt)
+                        )
+                    )
+                    draft = ""
+                }
+            }) {
+                Icon(
+                    Icons.Default.Send,
+                    contentDescription = "Send",
+                    tint = Cyan
+                )
+            }
+        }
+    }
+}
