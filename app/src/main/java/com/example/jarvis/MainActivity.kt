@@ -1,7 +1,10 @@
 
 package com.example.jarvis
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.core.RepeatMode
@@ -49,14 +52,35 @@ class MainActivity : ComponentActivity() {
                     surface = Panel
                 )
             ) {
-                JarvisDesktop()
+                JarvisDesktop(
+                    onStartFloating = { startFloatingCompanion() },
+                    onStopFloating = { stopService(Intent(this, DesktopMateService::class.java)) }
+                )
             }
         }
+    }
+
+    private fun startFloatingCompanion() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M &&
+            !Settings.canDrawOverlays(this)
+        ) {
+            val intent = Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:$packageName")
+            )
+            startActivity(intent)
+            return
+        }
+
+        startService(Intent(this, DesktopMateService::class.java))
     }
 }
 
 @Composable
-private fun JarvisDesktop() {
+private fun JarvisDesktop(
+    onStartFloating: () -> Unit,
+    onStopFloating: () -> Unit
+) {
     var selected by remember { mutableStateOf("Home") }
     var menuOpen by remember { mutableStateOf(false) }
 
@@ -161,7 +185,9 @@ private fun JarvisDesktop() {
                     "Character, voice and appearance controls will be added here."
                 )
                 else -> HomePanel(
-                    onOpenChat = { selected = "Chat" }
+                    onOpenChat = { selected = "Chat" },
+                    onStartFloating = onStartFloating,
+                    onStopFloating = onStopFloating
                 )
             }
         }
@@ -203,7 +229,11 @@ private fun NavigationTile(
 }
 
 @Composable
-private fun HomePanel(onOpenChat: () -> Unit) {
+private fun HomePanel(
+    onOpenChat: () -> Unit,
+    onStartFloating: () -> Unit,
+    onStopFloating: () -> Unit
+) {
     var mood by remember { mutableStateOf("Idle") }
 
     val transition = rememberInfiniteTransition(label = "character")
@@ -321,6 +351,33 @@ private fun HomePanel(onOpenChat: () -> Unit) {
                 ) {
                     Text("Open JARVIS Chat")
                 }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = onStartFloating,
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 10.dp)
+                    ) {
+                        Text("Start Floating", fontSize = 11.sp)
+                    }
+
+                    OutlinedButton(
+                        onClick = onStopFloating,
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 10.dp)
+                    ) {
+                        Text("Stop Floating", fontSize = 11.sp)
+                    }
+                }
+
+                Text(
+                    "If Android asks for ‘Display over other apps’, allow JARVIS, return here, then tap Start Floating JARVIS again.",
+                    color = Muted,
+                    fontSize = 10.sp
+                )
 
                 Text(
                     "Chat currently uses the demo response engine.",
