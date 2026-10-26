@@ -12,7 +12,9 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,6 +28,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -235,6 +238,9 @@ private fun HomePanel(
     onStopFloating: () -> Unit
 ) {
     var mood by remember { mutableStateOf("Idle") }
+    var babyMode by remember { mutableStateOf(false) }
+    var tapCount by remember { mutableStateOf(0) }
+    var lastTapAt by remember { mutableStateOf(0L) }
 
     val transition = rememberInfiniteTransition(label = "character")
     val breathing by transition.animateFloat(
@@ -274,17 +280,45 @@ private fun HomePanel(
 
                 Spacer(Modifier.height(8.dp))
 
-                Image(
-                    painter = painterResource(
-                        id = R.drawable.character_full_body
-                    ),
-                    contentDescription = "JARVIS anime scientist character sheet",
+                Crossfade(
+                    targetState = babyMode,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f)
-                        .scale(breathing),
-                    contentScale = ContentScale.Fit
-                )
+                        .weight(1f),
+                    label = "character-form"
+                ) { isBaby ->
+                    Image(
+                        painter = painterResource(
+                            id = if (isBaby) R.drawable.character_baby
+                            else R.drawable.character_normal
+                        ),
+                        contentDescription = if (isBaby) "JARVIS baby form"
+                        else "JARVIS normal form",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .scale(breathing)
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onTap = {
+                                        val now = System.currentTimeMillis()
+                                        tapCount = if (now - lastTapAt <= 500L) {
+                                            tapCount + 1
+                                        } else {
+                                            1
+                                        }
+                                        lastTapAt = now
+
+                                        if (tapCount >= 3) {
+                                            babyMode = !babyMode
+                                            tapCount = 0
+                                            lastTapAt = 0L
+                                        }
+                                    }
+                                )
+                            },
+                        contentScale = ContentScale.Fit
+                    )
+                }
 
                 Spacer(Modifier.height(8.dp))
 
