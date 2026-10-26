@@ -55,6 +55,16 @@ fun CharacterEnginePanel() {
         label = "floating"
     )
 
+    val idleTilt by transition.animateFloat(
+        initialValue = -0.6f,
+        targetValue = 0.6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2600),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "idle_tilt"
+    )
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -74,7 +84,7 @@ fun CharacterEnginePanel() {
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
         ) {
             Image(
-                painter = painterResource(id = R.drawable.character_sheet),
+                painter = painterResource(id = R.drawable.character_full_body),
                 contentDescription = "JARVIS anime companion. Tap to interact.",
                 modifier = Modifier
                     .fillMaxWidth()
@@ -83,6 +93,7 @@ fun CharacterEnginePanel() {
                         scaleX = breathing
                         scaleY = breathing
                         translationY = floating
+                        rotationZ = idleTilt
                     }
                     .pointerInput(Unit) {
                         detectTapGestures(

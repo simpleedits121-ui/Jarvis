@@ -23,7 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -45,6 +45,26 @@ fun CharacterAvatar(
             repeatMode = RepeatMode.Reverse
         ),
         label = "breathing"
+    )
+
+    val headTilt by transition.animateFloat(
+        initialValue = -0.7f,
+        targetValue = 0.7f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2800),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "head_tilt"
+    )
+
+    val floating by transition.animateFloat(
+        initialValue = -2f,
+        targetValue = 2f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2200),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "floating"
     )
 
     val moodText = when (state.mood) {
@@ -73,12 +93,17 @@ fun CharacterAvatar(
 
         Image(
             painter = painterResource(
-                id = R.drawable.character_sheet
+                id = R.drawable.character_full_body
             ),
             contentDescription = "JARVIS character",
             modifier = Modifier
                 .size(width = 240.dp, height = 300.dp)
-                .scale(breathing),
+                .graphicsLayer {
+                    scaleX = breathing
+                    scaleY = breathing
+                    translationY = floating
+                    rotationZ = headTilt
+                },
             contentScale = ContentScale.Fit
         )
 
