@@ -276,7 +276,7 @@ private fun HomePanel(
 
                 Image(
                     painter = painterResource(
-                        id = R.drawable.character_sheet
+                        id = R.drawable.character_full_body
                     ),
                     contentDescription = "JARVIS anime scientist character sheet",
                     modifier = Modifier
