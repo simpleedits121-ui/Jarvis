@@ -494,6 +494,10 @@ private fun InfoPanel(title: String, description: String) {
 @Composable
 private fun ChatPanel() {
     val core = remember { JarvisCore() }
+    var characterState by remember { mutableStateOf(CharacterState()) }
+    val characterController = remember {
+        CharacterController { nextState -> characterState = nextState }
+    }
     val messages = remember {
         mutableStateListOf(
             Message(
@@ -514,6 +518,26 @@ private fun ChatPanel() {
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold
         )
+
+        Surface(
+            color = Panel,
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(10.dp)) {
+                Text(
+                    "CHARACTER: ${characterState.mood.name}",
+                    color = Cyan,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "Gesture: ${characterState.gesture.name}",
+                    color = Muted,
+                    fontSize = 10.sp
+                )
+            }
+        }
 
         LazyColumn(
             modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -576,13 +600,35 @@ private fun ChatPanel() {
             IconButton(onClick = {
                 val prompt = draft.trim()
                 if (prompt.isNotEmpty()) {
+                    characterController.onUserMessage(prompt)
                     messages.add(Message(fromUser = true, text = prompt))
-                    messages.add(
-                        Message(
-                            fromUser = false,
-                            text = core.respondToDemoMessage(prompt)
+
+                    characterController.onAiThinking()
+                    val replyText = core.respondToDemoMessage(prompt)
+                    val lower = prompt.lowercase()
+                    val emotion = when {
+                        "thank" in lower || "great" in lower -> "happy"
+                        "sad" in lower || "upset" in lower -> "empathetic"
+                        "help" in lower || "confused" in lower -> "concerned"
+                        "?" in prompt -> "thinking"
+                        else -> null
+                    }
+                    val gesture = when {
+                        lower == "hello" || lower == "hi" ||
+                            lower.startsWith("hello ") || lower.startsWith("hi ") -> "wave"
+                        "thank" in lower -> "nod"
+                        "?" in prompt -> "head_tilt"
+                        else -> null
+                    }
+
+                    characterController.onAiResponse(
+                        CharacterReply(
+                            text = replyText,
+                            emotion = emotion,
+                            gesture = gesture
                         )
                     )
+                    messages.add(Message(fromUser = false, text = replyText))
                     draft = ""
                 }
             }) {
