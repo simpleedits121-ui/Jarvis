@@ -1,0 +1,11 @@
+JARVIS 2.5D starter upgrade
+
+Changed:
+- HomePanel now animates breathing, subtle vertical hover, tiny Z tilt, and tiny Y-axis perspective sway.
+- Uses Compose graphicsLayer; no new dependencies.
+- Keeps existing app structure and existing character_full_body.png asset.
+
+Limitations:
+- This is a lightweight 2.5D motion prototype, not a rigged Live2D character.
+- Eye tracking, blinking, hair physics, and normal-to-baby-to-floating transformation require layered/rigged artwork and the relevant assets.
+- This archive was source-edited only; build it with the existing GitHub Actions workflow before installing.

@@ -34,3 +34,7 @@ Use Android Studio with JDK 17 and Android SDK platform 35. Open this folder as 
 3. Connect character state to real interactions and speech.
 4. Add an offline model runtime only after selecting a model that fits the target device's RAM and storage.
 5. Add privacy controls, memory management, health checks, and tests before any self-maintenance features.
+
+
+## Character prototype upgrade
+The Home panel now uses the approved JARVIS portrait with gentle breathing, floating, mood tilt and mood-state controls. This remains a flattened-art animation prototype; it is not a rigged Live2D model. See `PHONE_FIRST_LIVE2D_GUIDE.md` for phone-first build and next steps.

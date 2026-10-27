@@ -7,14 +7,14 @@ import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -27,7 +27,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -239,19 +241,69 @@ private fun HomePanel(
 ) {
     var mood by remember { mutableStateOf("Idle") }
     var babyMode by remember { mutableStateOf(false) }
-    var tapCount by remember { mutableStateOf(0) }
-    var lastTapAt by remember { mutableStateOf(0L) }
+    var tapCount by remember { mutableIntStateOf(0) }
+    var lastTapAt by remember { mutableLongStateOf(0L) }
+    var blinkFrame by remember { mutableStateOf(false) }
 
-    val transition = rememberInfiniteTransition(label = "character")
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(3600L)
+            blinkFrame = true
+            kotlinx.coroutines.delay(140L)
+            blinkFrame = false
+        }
+    }
+
+    val transition = rememberInfiniteTransition(label = "jarvis_character")
     val breathing by transition.animateFloat(
         initialValue = 1f,
-        targetValue = 1.012f,
+        targetValue = 1.014f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1800),
+            animation = tween(2100),
             repeatMode = RepeatMode.Reverse
         ),
         label = "breathing"
     )
+    val floating by transition.animateFloat(
+        initialValue = -3f,
+        targetValue = 3f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2800),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "gentle_float"
+    )
+    val targetTilt = when (mood) {
+        "Listening" -> -1.8f
+        "Thinking" -> 2.0f
+        "Happy" -> -1.0f
+        "Sleeping" -> 1.2f
+        else -> 0f
+    }
+    val moodTilt by animateFloatAsState(
+        targetValue = targetTilt,
+        animationSpec = tween(420),
+        label = "mood_tilt"
+    )
+    val moodGlow by animateColorAsState(
+        targetValue = when (mood) {
+            "Listening" -> Color(0xFF123B55)
+            "Thinking" -> Color(0xFF252348)
+            "Happy" -> Color(0xFF16443F)
+            "Sleeping" -> Color(0xFF171F3B)
+            else -> Color(0xFF0B1A2A)
+        },
+        animationSpec = tween(500),
+        label = "mood_glow"
+    )
+
+    val moodLine = when (mood) {
+        "Listening" -> "I'm listening. Go ahead."
+        "Thinking" -> "Give me a moment to think."
+        "Happy" -> "Good to see you again."
+        "Sleeping" -> "Rest mode. Tap me to wake up."
+        else -> "Your local anime companion"
+    }
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -261,7 +313,7 @@ private fun HomePanel(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
-            color = Color(0xFF0B1A2A),
+            color = moodGlow,
             shape = RoundedCornerShape(20.dp)
         ) {
             Column(
@@ -278,89 +330,96 @@ private fun HomePanel(
                     fontWeight = FontWeight.Bold
                 )
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(6.dp))
 
-                Crossfade(
-                    targetState = babyMode,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    label = "character-form"
-                ) { isBaby ->
-                    Image(
-                        painter = painterResource(
-                            id = if (isBaby) R.drawable.character_baby
-                            else R.drawable.character_normal
-                        ),
-                        contentDescription = if (isBaby) "JARVIS baby form"
-                        else "JARVIS normal form",
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .scale(breathing)
-                            .pointerInput(Unit) {
-                                detectTapGestures(
-                                    onTap = {
-                                        val now = System.currentTimeMillis()
-                                        tapCount = if (now - lastTapAt <= 500L) {
-                                            tapCount + 1
-                                        } else {
-                                            1
-                                        }
-                                        lastTapAt = now
-
-                                        if (tapCount >= 3) {
-                                            babyMode = !babyMode
-                                            tapCount = 0
-                                            lastTapAt = 0L
-                                        }
-                                    }
-                                )
-                            },
-                        contentScale = ContentScale.Fit
-                    )
+                val characterImage = when {
+                    babyMode -> R.drawable.character_baby
+                    blinkFrame && mood == "Idle" -> R.drawable.character_wink
+                    mood == "Happy" -> R.drawable.character_happy
+                    mood == "Listening" -> R.drawable.character_surprised
+                    mood == "Thinking" -> R.drawable.character_thinking
+                    mood == "Sleeping" -> R.drawable.character_sleeping
+                    else -> R.drawable.character_portrait
                 }
 
-                Spacer(Modifier.height(8.dp))
-
-                Text(
-                    "YOUR ANIME COMPANION",
-                    color = Color.White,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold
+                Image(
+                    painter = painterResource(id = characterImage),
+                    contentDescription = if (babyMode) "JARVIS baby companion" else "JARVIS anime scientist companion",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .graphicsLayer {
+                            scaleX = breathing
+                            scaleY = breathing
+                            translationY = floating
+                            rotationZ = moodTilt
+                        }
+                        .pointerInput(babyMode) {
+                            detectTapGestures(
+                                onTap = {
+                                    val now = System.currentTimeMillis()
+                                    tapCount = if (now - lastTapAt <= 650L) tapCount + 1 else 1
+                                    lastTapAt = now
+                                    if (tapCount >= 3) {
+                                        babyMode = !babyMode
+                                        tapCount = 0
+                                        mood = "Happy"
+                                    } else {
+                                        mood = when (mood) {
+                                            "Idle" -> "Happy"
+                                            "Happy" -> "Listening"
+                                            "Listening" -> "Thinking"
+                                            "Thinking" -> "Sleeping"
+                                            else -> "Idle"
+                                        }
+                                    }
+                                },
+                                onLongPress = { mood = "Listening" }
+                            )
+                        },
+                    contentScale = ContentScale.Fit
                 )
 
+                Spacer(Modifier.height(4.dp))
                 Text(
-                    "Local character engine",
+                    if (babyMode) "JARVIS • BABY MODE" else "JARVIS SCIENCE COMPANION",
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    if (babyMode) "Baby mode • triple-tap to switch back" else "$moodLine • triple-tap for baby mode",
                     color = Muted,
                     fontSize = 10.sp
                 )
-
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(8.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
-                    listOf("Idle", "Listen", "Think", "Sleep").forEach { action ->
+                    listOf("Idle", "Listen", "Think", "Happy", "Sleep").forEach { action ->
                         Button(
                             onClick = {
                                 mood = when (action) {
                                     "Listen" -> "Listening"
                                     "Think" -> "Thinking"
                                     "Sleep" -> "Sleeping"
-                                    else -> "Idle"
+                                    else -> action
                                 }
                             },
                             modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(
-                                horizontal = 2.dp,
-                                vertical = 8.dp
-                            )
+                            contentPadding = PaddingValues(horizontal = 1.dp, vertical = 7.dp)
                         ) {
-                            Text(action, fontSize = 10.sp)
+                            Text(action, fontSize = 9.sp, maxLines = 1)
                         }
                     }
                 }
+                Text(
+                    "Animated illustration prototype • Live2D rig not connected yet",
+                    color = Muted,
+                    fontSize = 9.sp
+                )
             }
         }
 
@@ -376,16 +435,10 @@ private fun HomePanel(
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold
                 )
-
                 Spacer(Modifier.height(8.dp))
-
-                Button(
-                    onClick = onOpenChat,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                Button(onClick = onOpenChat, modifier = Modifier.fillMaxWidth()) {
                     Text("Open JARVIS Chat")
                 }
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -394,25 +447,18 @@ private fun HomePanel(
                         onClick = onStartFloating,
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 10.dp)
-                    ) {
-                        Text("Start Floating", fontSize = 11.sp)
-                    }
-
+                    ) { Text("Start Floating", fontSize = 11.sp) }
                     OutlinedButton(
                         onClick = onStopFloating,
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 10.dp)
-                    ) {
-                        Text("Stop Floating", fontSize = 11.sp)
-                    }
+                    ) { Text("Stop Floating", fontSize = 11.sp) }
                 }
-
                 Text(
-                    "If Android asks for ‘Display over other apps’, allow JARVIS, return here, then tap Start Floating JARVIS again.",
+                    "If asked, allow Display over other apps, return here, then tap Start Floating again.",
                     color = Muted,
                     fontSize = 10.sp
                 )
-
                 Text(
                     "Chat currently uses the demo response engine.",
                     color = Muted,

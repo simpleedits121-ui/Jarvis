@@ -3,7 +3,7 @@ name: Build JARVIS APK
 on:
   workflow_dispatch:
   push:
-    branches: ["main"]
+    branches: ["main", "test/triple-tap"]
 
 permissions:
   contents: read
