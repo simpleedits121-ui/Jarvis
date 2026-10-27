@@ -285,6 +285,36 @@ private fun HomePanel(
         animationSpec = tween(420),
         label = "mood_tilt"
     )
+
+    var gestureKey by remember { mutableIntStateOf(0) }
+    var gesture by remember { mutableStateOf("None") }
+
+    val gestureTiltTarget = when (gesture) {
+        "Nod" -> 0f
+        "HeadTilt" -> -7f
+        "Wave" -> 2.5f
+        else -> 0f
+    }
+
+    val gestureTilt by animateFloatAsState(
+        targetValue = gestureTiltTarget,
+        animationSpec = tween(220),
+        label = "gesture_tilt"
+    )
+
+    val gestureLift by animateFloatAsState(
+        targetValue = if (gesture == "Nod") 5f else 0f,
+        animationSpec = tween(180),
+        label = "gesture_lift"
+    )
+
+    LaunchedEffect(gestureKey) {
+        if (gesture != "None") {
+            kotlinx.coroutines.delay(650L)
+            gesture = "None"
+        }
+    }
+
     val moodGlow by animateColorAsState(
         targetValue = when (mood) {
             "Listening" -> Color(0xFF123B55)
@@ -351,8 +381,8 @@ private fun HomePanel(
                         .graphicsLayer {
                             scaleX = breathing
                             scaleY = breathing
-                            translationY = floating
-                            rotationZ = moodTilt
+                            translationY = floating + gestureLift
+                            rotationZ = moodTilt + gestureTilt
                         }
                         .pointerInput(babyMode) {
                             detectTapGestures(
@@ -364,6 +394,8 @@ private fun HomePanel(
                                         babyMode = !babyMode
                                         tapCount = 0
                                         mood = "Happy"
+                                        gesture = "Wave"
+                                        gestureKey++
                                     } else {
                                         mood = when (mood) {
                                             "Idle" -> "Happy"
@@ -372,9 +404,20 @@ private fun HomePanel(
                                             "Thinking" -> "Sleeping"
                                             else -> "Idle"
                                         }
+                                        gesture = when (mood) {
+                                            "Happy" -> "Nod"
+                                            "Listening" -> "HeadTilt"
+                                            "Thinking" -> "HeadTilt"
+                                            else -> "None"
+                                        }
+                                        gestureKey++
                                     }
                                 },
-                                onLongPress = { mood = "Listening" }
+                                onLongPress = {
+                                    mood = "Listening"
+                                    gesture = "HeadTilt"
+                                    gestureKey++
+                                }
                             )
                         },
                     contentScale = ContentScale.Fit
