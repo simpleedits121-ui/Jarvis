@@ -49,6 +49,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        CharacterRoutineManager.initialize(applicationContext)
+
         setContent {
             MaterialTheme(
                 colorScheme = darkColorScheme(
@@ -63,6 +65,11 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        CharacterRoutineManager.refresh()
     }
 
     private fun startFloatingCompanion() {

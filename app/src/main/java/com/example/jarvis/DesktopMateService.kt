@@ -20,6 +20,12 @@ import android.view.View
 import android.view.WindowManager
 import android.speech.tts.TextToSpeech
 import java.util.Locale
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 import kotlin.math.sin
 
 class DesktopMateService : Service(), TextToSpeech.OnInitListener {
@@ -32,6 +38,7 @@ class DesktopMateService : Service(), TextToSpeech.OnInitListener {
     private var attached = false
 
     private val handler = Handler(Looper.getMainLooper())
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var lastMove = 0L
     private var direction = 1
     private var lastTap = 0L
@@ -85,8 +92,18 @@ class DesktopMateService : Service(), TextToSpeech.OnInitListener {
         windowManager =
             getSystemService(WINDOW_SERVICE) as WindowManager
 
+        CharacterRoutineManager.initialize(applicationContext)
         tts = TextToSpeech(this, this)
         mateView = MateView(this)
+        serviceScope.launch {
+            CharacterStateStore.state.collect { state ->
+                mateView.expression = when (state.mood) {
+                    CharacterMood.HAPPY, CharacterMood.PLAYFUL -> MateView.Expression.HAPPY
+                    CharacterMood.SURPRISED -> MateView.Expression.SURPRISED
+                    else -> MateView.Expression.IDLE
+                }
+            }
+        }
 
         val windowType =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -156,6 +173,7 @@ class DesktopMateService : Service(), TextToSpeech.OnInitListener {
     }
 
     private fun handleTap() {
+        CharacterRoutineManager.noteInteraction()
         val now = SystemClock.uptimeMillis()
 
         if (now - lastTap < 350L) {
@@ -207,6 +225,7 @@ class DesktopMateService : Service(), TextToSpeech.OnInitListener {
     ): Int = START_NOT_STICKY
 
     override fun onDestroy() {
+        serviceScope.cancel()
         attached = false
         handler.removeCallbacksAndMessages(null)
 

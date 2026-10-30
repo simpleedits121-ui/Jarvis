@@ -2,35 +2,38 @@
 package com.example.jarvis
 
 class CharacterController(
-    private val onStateChanged: (CharacterState) -> Unit
+    private val onStateChanged: (CharacterState) -> Unit = {}
 ) {
-    var state: CharacterState = CharacterState()
+    var state: CharacterState = CharacterStateStore.state.value
         private set
 
-    private fun update(next: CharacterState) {
-        state = next
-        onStateChanged(next)
+    private fun update(transform: (CharacterState) -> CharacterState) {
+        CharacterStateStore.update(transform)
+        state = CharacterStateStore.state.value
+        onStateChanged(state)
     }
 
     fun onUserMessage(text: String) {
-        update(
-            state.copy(
+        CharacterRoutineManager.noteInteraction()
+        update {
+            it.copy(
                 mood = CharacterMood.LISTENING,
                 text = text,
+                gesture = CharacterGesture.NONE,
                 isSpeaking = false,
                 mouthOpen = 0f
             )
-        )
+        }
     }
 
     fun onAiThinking() {
-        update(
-            state.copy(
+        update {
+            it.copy(
                 mood = CharacterMood.THINKING,
                 isSpeaking = false,
                 mouthOpen = 0f
             )
-        )
+        }
     }
 
     fun onAiResponse(reply: CharacterReply) {
@@ -53,8 +56,8 @@ class CharacterController(
             else -> CharacterGesture.NONE
         }
 
-        update(
-            state.copy(
+        update {
+            it.copy(
                 mood = mood,
                 gesture = gesture,
                 text = reply.text,
@@ -62,51 +65,70 @@ class CharacterController(
                 isSpeaking = false,
                 mouthOpen = 0f
             )
-        )
+        }
     }
 
     fun onListening() {
-        update(state.copy(mood = CharacterMood.LISTENING))
-    }
-
-    fun onSpeechStarted() {
-        update(
-            state.copy(
-                isSpeaking = true,
-                mouthOpen = 0.2f
-            )
-        )
-    }
-
-    fun onSpeechLevel(level: Float) {
-        if (state.isSpeaking) {
-            update(
-                state.copy(
-                    mouthOpen = level.coerceIn(0f, 1f)
-                )
+        CharacterRoutineManager.noteInteraction()
+        update {
+            it.copy(
+                mood = CharacterMood.LISTENING,
+                isSpeaking = false,
+                mouthOpen = 0f
             )
         }
     }
 
+    fun onSpeechStarted() {
+        update {
+            it.copy(
+                isSpeaking = true,
+                mouthOpen = 0.2f
+            )
+        }
+    }
+
+    fun onSpeechLevel(level: Float) {
+        update {
+            if (it.isSpeaking) {
+                it.copy(mouthOpen = level.coerceIn(0f, 1f))
+            } else {
+                it
+            }
+        }
+    }
+
     fun onSpeechEnded() {
-        update(
-            state.copy(
+        update {
+            it.copy(
                 mood = CharacterMood.IDLE,
                 gesture = CharacterGesture.NONE,
                 isSpeaking = false,
                 mouthOpen = 0f
             )
-        )
+        }
     }
 
     fun onBecameIdle() {
-        update(
-            state.copy(
+        update {
+            it.copy(
                 mood = CharacterMood.IDLE,
                 gesture = CharacterGesture.NONE,
                 isSpeaking = false,
                 mouthOpen = 0f
             )
-        )
+        }
+    }
+
+    fun wakeUp() {
+        CharacterRoutineManager.noteInteraction()
+        update {
+            it.copy(
+                mood = CharacterMood.HAPPY,
+                gesture = CharacterGesture.NOD,
+                isSpeaking = false,
+                mouthOpen = 0f
+            )
+        }
     }
 }
