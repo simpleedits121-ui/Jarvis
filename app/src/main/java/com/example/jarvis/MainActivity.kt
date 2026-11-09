@@ -1,6 +1,10 @@
 
 package com.example.jarvis
 
+import androidx.compose.runtime.mutableFloatStateOf
+
+
+
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -30,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -261,6 +266,9 @@ private fun HomePanel(
         }
     }
 
+    var aetherYaw by remember { mutableFloatStateOf(0f) }
+    var aetherPitch by remember { mutableFloatStateOf(0f) }
+
     val transition = rememberInfiniteTransition(label = "jarvis_character")
     val breathing by transition.animateFloat(
         initialValue = 1f,
@@ -390,6 +398,18 @@ private fun HomePanel(
                             scaleY = breathing
                             translationY = floating + gestureLift
                             rotationZ = moodTilt + gestureTilt
+                            rotationY = aetherYaw
+                            rotationX = aetherPitch
+                            cameraDistance = 16f * density
+                        }
+                        .pointerInput(Unit) {
+                            detectDragGestures { change, dragAmount ->
+                                change.consume()
+                                aetherYaw = (aetherYaw + dragAmount.x * 0.0008f)
+                                    .coerceIn(-0.65f, 0.65f)
+                                aetherPitch = (aetherPitch + dragAmount.y * 0.0005f)
+                                    .coerceIn(-0.4f, 0.4f)
+                            }
                         }
                         .pointerInput(babyMode) {
                             detectTapGestures(
