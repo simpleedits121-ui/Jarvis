@@ -1,0 +1,59 @@
+name: Build AETHER 3D APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - aether/3d-character
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Convert Rem FBX and build AETHER APK
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout AETHER branch
+        uses: actions/checkout@v4
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+      - name: Install Blender for FBX conversion
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender
+      - name: Convert Rem FBX to self-contained GLB
+        run: |
+          blender --background --python tools/convert_rem_fbx.py -- \
+            --input tools/rem_source/Rem.fbx \
+            --textures tools/rem_source/images \
+            --output app/src/main/assets/models/rem.glb
+      - name: Install Gradle 8.9
+        run: |
+          curl -fsSL https://services.gradle.org/distributions/gradle-8.9-bin.zip -o /tmp/gradle.zip
+          unzip -q /tmp/gradle.zip -d /tmp
+          echo "/tmp/gradle-8.9/bin" >> "$GITHUB_PATH"
+      - name: Build AETHER debug APK
+        run: gradle --no-daemon assembleDebug --stacktrace
+      - name: Verify APK and converted model
+        run: |
+          test -s app/src/main/assets/models/rem.glb
+          test -s app/build/outputs/apk/debug/app-debug.apk
+          ls -lh app/src/main/assets/models/rem.glb
+          ls -lh app/build/outputs/apk/debug/app-debug.apk
+      - name: Upload AETHER APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: aether-3d-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14

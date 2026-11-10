@@ -7,7 +7,6 @@ plugins {
 android {
     namespace = "com.example.jarvis"
     compileSdk = 35
-    ndkVersion = "27.2.12479018"
 
     defaultConfig {
         applicationId = "com.example.jarvis"
@@ -16,27 +15,13 @@ android {
         versionCode = 2
         versionName = "0.4-aether"
 
-        ndk {
-            abiFilters += listOf("arm64-v8a")
-        }
 
-        externalNativeBuild {
-            cmake {
-                cppFlags += listOf("-std=c++17", "-fno-exceptions", "-fno-rtti")
-            }
-        }
     }
 
     buildFeatures {
         compose = true
     }
 
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-            version = "3.22.1"
-        }
-    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -48,6 +33,9 @@ android {
 }
 
 dependencies {
+    implementation("com.google.android.filament:filament-android:1.80.0")
+    implementation("com.google.android.filament:gltfio-android:1.80.0")
+    implementation("com.google.android.filament:filament-utils-android:1.80.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     val composeBom = platform("androidx.compose:compose-bom:2024.12.01")
     implementation(composeBom)

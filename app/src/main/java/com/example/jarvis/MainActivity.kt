@@ -121,7 +121,7 @@ private fun JarvisDesktop(
 
             HorizontalDivider(color = Color(0xFF263B4D))
 
-            listOf("Home", "Chat", "Models", "Tools", "Settings")
+            listOf("Home", "Chat", "Models", "Tools", "AETHER", "Settings")
                 .forEach { page ->
                     NavigationTile(
                         label = page,
@@ -171,7 +171,7 @@ private fun JarvisDesktop(
                         expanded = menuOpen,
                         onDismissRequest = { menuOpen = false }
                     ) {
-                        listOf("Home", "Chat", "Models", "Tools", "Settings")
+                        listOf("Home", "Chat", "Models", "Tools", "AETHER", "Settings")
                             .forEach { page ->
                                 DropdownMenuItem(
                                     text = { Text(page) },
@@ -201,6 +201,7 @@ private fun JarvisDesktop(
                     "SETTINGS",
                     "Character, voice and appearance controls will be added here."
                 )
+                "AETHER" -> Aether3DPanel()
                 else -> HomePanel(
                     onOpenChat = { selected = "Chat" },
                     onStartFloating = onStartFloating,
@@ -222,6 +223,7 @@ private fun NavigationTile(
         "Chat" -> "◉"
         "Models" -> "▤"
         "Tools" -> "⚙"
+        "AETHER" -> "◇"
         else -> "☰"
     }
 
@@ -505,8 +507,6 @@ private fun HomePanel(
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(Modifier.height(8.dp))
-                AetherStatusCard()
                 Spacer(Modifier.height(8.dp))
                 Button(onClick = onOpenChat, modifier = Modifier.fillMaxWidth()) {
                     Text("Open JARVIS Chat")
