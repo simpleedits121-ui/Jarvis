@@ -506,6 +506,8 @@ private fun HomePanel(
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.height(8.dp))
+                AetherStatusCard()
+                Spacer(Modifier.height(8.dp))
                 Button(onClick = onOpenChat, modifier = Modifier.fillMaxWidth()) {
                     Text("Open JARVIS Chat")
                 }

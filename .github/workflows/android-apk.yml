@@ -62,14 +62,18 @@ jobs:
             --install \
             "platform-tools" \
             "platforms;android-35" \
-            "build-tools;35.0.0"
+            "build-tools;35.0.0" \
+            "ndk;27.2.12479018" \
+            "cmake;3.22.1"
 
       - name: Verify Android SDK
         run: |
           test -d "$ANDROID_HOME/platforms/android-35"
           test -d "$ANDROID_HOME/build-tools/35.0.0"
           test -d "$ANDROID_HOME/platform-tools"
-          echo "Android SDK is ready"
+          test -d "$ANDROID_HOME/ndk/27.2.12479018"
+          test -d "$ANDROID_HOME/cmake/3.22.1"
+          echo "Android SDK, NDK and CMake are ready"
 
       - name: Verify Gradle wrapper
         run: |
